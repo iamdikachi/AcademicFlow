@@ -50,7 +50,11 @@ import {
   PhoneCall,
   Check,
   Lock,
-  Bell
+  Bell,
+  Eye,
+  EyeOff,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -147,6 +151,22 @@ export default function App() {
   const [notifications, setNotifications] = useState<ToastNotification[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
 
+  // Dark mode (persisted)
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    return localStorage.getItem('apex_darkmode') === 'true';
+  });
+
+  // Password visibility toggles
+  const [showSignInPw, setShowSignInPw] = useState(false);
+  const [showRegPw, setShowRegPw] = useState(false);
+  const [showAdminPw, setShowAdminPw] = useState(false);
+
+  // Course catalog search
+  const [catalogSearch, setCatalogSearch] = useState('');
+
+  // Mobile public nav open/close
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   const showToast = (title: string, message: string, type: 'success' | 'info' | 'warning' = 'info') => {
     const newNotif: ToastNotification = {
       id: Date.now().toString() + Math.random().toString(36).substring(2, 5),
@@ -206,6 +226,16 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('apex_confirmed_results', JSON.stringify(confirmedResults));
   }, [confirmedResults]);
+
+  // Sync dark mode to localStorage and toggle .dark class on <html>
+  useEffect(() => {
+    localStorage.setItem('apex_darkmode', darkMode ? 'true' : 'false');
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
 
   const activeStudent = students.find(s => s.id === selectedStudentId);
 
@@ -769,6 +799,16 @@ export default function App() {
                     >
                       <MapPin className="h-4 w-4" /> Campus Venues
                     </button>
+                    <button
+                      onClick={() => setActiveStudentTab('profile')}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-xs transition-colors cursor-pointer ${
+                        activeStudentTab === 'profile'
+                          ? 'bg-indigo-50 text-indigo-600'
+                          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                      }`}
+                    >
+                      <User className="h-4 w-4" /> My Profile
+                    </button>
                   </nav>
                 ) : (
                   <nav className="space-y-1">
@@ -779,6 +819,22 @@ export default function App() {
                   </nav>
                 )}
               </div>
+
+              {currentUserType === 'student' && activeStudent && (
+                <div className="bg-gradient-to-br from-indigo-50 to-violet-50 rounded-xl p-3.5 border border-indigo-100/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-wider">CGPA</span>
+                    <span className="text-sm font-black text-indigo-700 font-mono">{getStudentCgpa(activeStudent.id).toFixed(2)}</span>
+                  </div>
+                  <div className="w-full bg-white/70 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-700"
+                      style={{ width: `${Math.min((getStudentCgpa(activeStudent.id) / 5) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-[10px] text-indigo-500 font-semibold truncate">{getDegreeClass(getStudentCgpa(activeStudent.id))}</p>
+                </div>
+              )}
 
               <div className="space-y-4 pt-6 border-t border-slate-100">
                 <button
@@ -818,6 +874,14 @@ export default function App() {
 
               {currentUserType === 'student' && activeStudent ? (
                 <div className="flex items-center gap-4">
+                  {/* Dark Mode Toggle */}
+                  <button
+                    onClick={() => setDarkMode(!darkMode)}
+                    title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer flex items-center justify-center"
+                  >
+                    {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                  </button>
                   {/* Notifications Bell Dropdown */}
                   <div className="relative">
                     <button
@@ -826,7 +890,9 @@ export default function App() {
                     >
                       <Bell className="h-4.5 w-4.5" />
                       {notifications.length > 0 && (
-                        <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-indigo-600 ring-2 ring-white"></span>
+                        <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 rounded-full bg-indigo-600 ring-2 ring-white text-[9px] text-white font-black flex items-center justify-center leading-none">
+                          {notifications.length > 9 ? '9+' : notifications.length}
+                        </span>
                       )}
                     </button>
 
@@ -1311,6 +1377,68 @@ export default function App() {
                       </div>
                     )}
 
+                    {/* STUDENT PROFILE TAB */}
+                    {activeStudentTab === 'profile' && (
+                      <div className="bg-white rounded-2xl border border-slate-100 p-6 md:p-8 shadow-xs space-y-6">
+                        <div className="border-b border-slate-100 pb-5">
+                          <h2 className="text-xl font-bold text-slate-900">My Student Profile</h2>
+                          <p className="text-xs text-slate-500">Your personal academic profile and account information.</p>
+                        </div>
+
+                        {/* Avatar + Name Banner */}
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 p-5 bg-gradient-to-br from-indigo-50 to-violet-50 rounded-2xl border border-indigo-100/60">
+                          {activeStudent.avatar ? (
+                            <img
+                              src={activeStudent.avatar}
+                              alt={activeStudent.name}
+                              className="w-20 h-20 object-cover rounded-2xl border-2 border-white shadow-md shrink-0"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div className="w-20 h-20 rounded-2xl bg-indigo-100 text-indigo-600 font-black flex items-center justify-center text-2xl shrink-0">
+                              {activeStudent.name.charAt(0)}
+                            </div>
+                          )}
+                          <div className="space-y-1.5">
+                            <h3 className="text-xl font-black text-slate-900">{activeStudent.name}</h3>
+                            <span className="text-xs font-mono text-indigo-600 bg-white/80 border border-indigo-100 px-2 py-0.5 rounded-md inline-block">{activeStudent.matricNumber}</span>
+                            <p className="text-xs text-slate-500 pt-0.5">{activeStudent.email}</p>
+                          </div>
+                        </div>
+
+                        {/* Info Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                          {[
+                            { label: 'Department', value: activeStudent.department },
+                            { label: 'Academic Level', value: `${activeStudent.level} Level` },
+                            { label: 'Current Semester', value: activeStudent.currentSemester },
+                            { label: 'Registration Status', value: activeStudent.registrationStatus },
+                            { label: 'Cumulative GPA', value: getStudentCgpa(activeStudent.id).toFixed(2) },
+                            { label: 'Academic Standing', value: getDegreeClass(getStudentCgpa(activeStudent.id)) },
+                          ].map(({ label, value }) => (
+                            <div key={label} className="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-1">
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">{label}</span>
+                              <span className="font-bold text-slate-800 leading-snug block">{value}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Registered Courses */}
+                        <div className="bg-indigo-50/50 border border-indigo-100/60 rounded-xl p-4 space-y-2">
+                          <h4 className="font-black text-indigo-900 text-sm">Registered Courses ({activeStudent.registeredCourses.length})</h4>
+                          {activeStudent.registeredCourses.length === 0 ? (
+                            <p className="text-xs text-slate-500">No courses registered yet. Go to <strong>Course Registration</strong> to enroll.</p>
+                          ) : (
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {activeStudent.registeredCourses.map(code => (
+                                <span key={code} className="bg-white border border-indigo-100 text-indigo-700 font-mono font-bold px-2.5 py-1 rounded-lg text-[11px]">{code}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                   </motion.div>
                 ) : (
                   <motion.div
@@ -1387,6 +1515,14 @@ export default function App() {
               </nav>
 
               <div className="flex items-center gap-3">
+                {/* Dark Mode Toggle */}
+                <button
+                  onClick={() => setDarkMode(!darkMode)}
+                  title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                  className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                >
+                  {darkMode ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
+                </button>
                 <button
                   onClick={() => setPublicActiveTab('login')}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all shadow-3xs cursor-pointer flex items-center gap-1.5"
@@ -1394,9 +1530,38 @@ export default function App() {
                   <Lock className="h-4 w-4" />
                   Portal Login
                 </button>
+                {/* Hamburger for mobile */}
+                <button
+                  onClick={() => setMobileNavOpen(!mobileNavOpen)}
+                  className="lg:hidden p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                >
+                  {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                </button>
               </div>
             </div>
           </header>
+
+          {/* Mobile Nav Drawer */}
+          {mobileNavOpen && (
+            <div className="lg:hidden bg-white/95 backdrop-blur border-b border-slate-200 px-6 py-4 space-y-1 no-print">
+              {[
+                { label: 'Home', tab: 'home' },
+                { label: 'About Us', tab: 'about' },
+                { label: 'Academic Calendar', tab: 'calendar' },
+                { label: 'Contact Support', tab: 'contact' },
+              ].map(({ label, tab }) => (
+                <button
+                  key={tab}
+                  onClick={() => { setPublicActiveTab(tab as any); setMobileNavOpen(false); }}
+                  className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-colors cursor-pointer ${
+                    publicActiveTab === tab ? 'text-indigo-600 bg-indigo-50' : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Public Tab Content block */}
           <main className="flex-1 max-w-[1536px] w-full mx-auto p-6 md:p-12">
@@ -1715,16 +1880,19 @@ export default function App() {
                         <input 
                           type="text" 
                           placeholder="Search title or code..."
-                          onChange={(e) => {
-                            // simple mock search filter
-                          }}
+                          value={catalogSearch}
+                          onChange={(e) => setCatalogSearch(e.target.value)}
                           className="w-full bg-white border border-slate-200 rounded-lg p-2 font-semibold"
                         />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {courses.map((course) => (
+                      {courses.filter(c =>
+                        !catalogSearch ||
+                        c.title.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+                        c.code.toLowerCase().includes(catalogSearch.toLowerCase())
+                      ).map((course) => (
                         <div key={course.code} className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between space-y-2 hover:border-indigo-500 transition-all shadow-3xs">
                           <div className="space-y-1.5 text-xs">
                             <div className="flex justify-between items-start gap-2">
@@ -2007,11 +2175,33 @@ export default function App() {
                     </div>
 
                     {/* Right Login Cards block */}
-                    <div className="md:col-span-7 space-y-6">
-                      {/* Student Portal Card with Credentials & Registration Tabs */}
-                      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-3xs space-y-5">
-                        <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                          <h3 className="font-black text-slate-950 text-sm uppercase tracking-wider">Student Portal</h3>
+                     <div className="md:col-span-7 space-y-6">
+                       {/* Demo Credentials Banner */}
+                       <details className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-800 cursor-pointer select-none group">
+                         <summary className="font-black flex items-center gap-2 list-none">
+                           <Info className="h-4 w-4 text-amber-600 shrink-0" />
+                           Demo Credentials — Click to view preloaded accounts
+                         </summary>
+                         <div className="mt-3 space-y-2 pl-6">
+                           <p className="font-semibold text-amber-700">Default password for all accounts: <span className="font-mono bg-amber-100 px-1.5 py-0.5 rounded">1234</span></p>
+                           {students.slice(0, 3).map(st => (
+                             <button
+                               key={st.id}
+                               onClick={() => { setTypedEmail(st.email); setTypedPassword('1234'); setLoginTab('signin'); }}
+                               className="w-full text-left bg-white/70 hover:bg-white rounded-xl border border-amber-200 p-2.5 transition-all"
+                             >
+                               <span className="font-bold text-amber-900 block">{st.name}</span>
+                               <span className="text-amber-600 font-mono">{st.email}</span>
+                             </button>
+                           ))}
+                           <p className="text-[10px] text-amber-600 pt-1">For Admin access, use password <span className="font-mono bg-amber-100 px-1.5 py-0.5 rounded">admin</span> on the card below.</p>
+                         </div>
+                       </details>
+
+                       {/* Student Portal Card with Credentials & Registration Tabs */}
+                       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-3xs space-y-5">
+                         <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                           <h3 className="font-black text-slate-950 text-sm uppercase tracking-wider">Student Portal</h3>
                           <div className="flex bg-slate-100 p-0.5 rounded-lg text-[10px]">
                             <button
                               onClick={() => { setLoginTab('signin'); setLoginError(''); }}
@@ -2078,13 +2268,20 @@ export default function App() {
                                   <Lock className="h-3.5 w-3.5" />
                                 </span>
                                 <input
-                                  type="password"
+                                  type={showSignInPw ? 'text' : 'password'}
                                   required
                                   placeholder="••••••••"
                                   value={typedPassword}
                                   onChange={(e) => setTypedPassword(e.target.value)}
-                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pl-9 focus:bg-white focus:border-indigo-600 focus:outline-hidden transition-all text-slate-800"
+                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pl-9 pr-10 focus:bg-white focus:border-indigo-600 focus:outline-hidden transition-all text-slate-800"
                                 />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowSignInPw(!showSignInPw)}
+                                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                >
+                                  {showSignInPw ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                </button>
                               </div>
                             </div>
 
@@ -2137,14 +2334,23 @@ export default function App() {
 
                               <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Secure Password</label>
-                                <input
-                                  type="password"
-                                  required
-                                  placeholder="Choose password"
-                                  value={regPassword}
-                                  onChange={(e) => setRegPassword(e.target.value)}
-                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:bg-white focus:border-indigo-600 focus:outline-hidden transition-all text-slate-800 font-mono"
-                                />
+                                <div className="relative">
+                                  <input
+                                    type={showRegPw ? 'text' : 'password'}
+                                    required
+                                    placeholder="Choose password"
+                                    value={regPassword}
+                                    onChange={(e) => setRegPassword(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pr-10 focus:bg-white focus:border-indigo-600 focus:outline-hidden transition-all text-slate-800 font-mono"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowRegPw(!showRegPw)}
+                                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                  >
+                                    {showRegPw ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                  </button>
+                                </div>
                               </div>
                             </div>
 
@@ -2282,13 +2488,22 @@ export default function App() {
                         <form onSubmit={handleAdminSignIn} className="space-y-3 text-xs">
                           <div className="space-y-1.5">
                             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Administrative password</label>
-                            <input
-                              type="password"
-                              placeholder="Access token (use 'admin' or '1234')"
-                              value={adminPassword}
-                              onChange={(e) => setAdminPassword(e.target.value)}
-                              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus:bg-white focus:border-indigo-600 focus:outline-hidden font-mono text-xs transition-all text-slate-800"
-                            />
+                            <div className="relative">
+                              <input
+                                type={showAdminPw ? 'text' : 'password'}
+                                placeholder="Access token (use 'admin' or '1234')"
+                                value={adminPassword}
+                                onChange={(e) => setAdminPassword(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pr-10 focus:bg-white focus:border-indigo-600 focus:outline-hidden font-mono text-xs transition-all text-slate-800"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowAdminPw(!showAdminPw)}
+                                className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                              >
+                                {showAdminPw ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                              </button>
+                            </div>
                           </div>
 
                           {adminError && (

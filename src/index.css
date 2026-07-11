@@ -7,7 +7,7 @@
 }
 
 html {
-  font-size: 125%; /* Globally scale text up (16px becomes 20px) for maximum readability across the entire application */
+  font-size: 100%; /* Default browser font size (16px) */
 }
 
 /* Custom scrollbars and styling */
@@ -24,4 +24,56 @@ body {
     display: none !important;
   }
 }
+
+/* =====================================================
+   DARK MODE OVERRIDES
+   Activated by adding `.dark` class to <html> element
+   ===================================================== */
+.dark body {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+/* Card / surface whites */
+.dark .bg-white { background-color: #1e293b !important; }
+.dark .bg-slate-50 { background-color: #162032 !important; }
+.dark .bg-slate-100 { background-color: #1e293b !important; }
+
+/* Sidebar + header */
+.dark aside.bg-white,
+.dark header.bg-white { background-color: #1e293b !important; border-color: #334155 !important; }
+
+/* Text colours */
+.dark .text-slate-900 { color: #f1f5f9 !important; }
+.dark .text-slate-800 { color: #e2e8f0 !important; }
+.dark .text-slate-700 { color: #cbd5e1 !important; }
+.dark .text-slate-600 { color: #94a3b8 !important; }
+.dark .text-slate-500 { color: #64748b !important; }
+
+/* Borders */
+.dark .border-slate-200 { border-color: #334155 !important; }
+.dark .border-slate-100 { border-color: #1e293b !important; }
+
+/* Dark bg keeps its depth */
+.dark .bg-slate-900 { background-color: #020617 !important; }
+.dark .border-slate-800 { border-color: #1e293b !important; }
+
+/* Form inputs */
+.dark input:not([type="radio"]):not([type="checkbox"]),
+.dark select,
+.dark textarea {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder { color: #475569 !important; }
+
+/* Toast container stays white-on-dark */
+.dark .bg-white.rounded-2xl { background-color: #1e293b !important; }
+
+/* Scrollbar for dark mode */
+.dark ::-webkit-scrollbar-track { background: #0f172a; }
+.dark ::-webkit-scrollbar-thumb { background: #334155; }
+
 
