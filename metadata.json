@@ -1,0 +1,6 @@
+{
+  "name": "Course Registration & Result Confirmation System",
+  "description": "An elegant, comprehensive online platform for university students to register courses, generate printable slips, view results, calculate GPA/CGPA, and for administrators to manage courses and input grades.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
